@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Tier List Maker</title>
+<style>
+  :root {
+    --bg: #131316;
+    --panel: #1c1c20;
+    --panel-2: #232328;
+    --line: #34343a;
+    --text: #ECECEF;
+    --text-dim: #8C8C96;
+    --accent: #F4D35E;
+    --s-color: #FF4D5E;
+    --a-color: #FF9F4D;
+    --b-color: #F4D35E;
+    --c-color: #6FCF97;
+    --d-color: #4D9BFF;
+    --extra-color: #B084F0;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  }
+
+  @font-face {
+    font-family: 'Display';
+    src: local('Arial Narrow Bold'), local('Arial');
+  }
+
+  .display {
+    font-family: Impact, 'Arial Narrow Bold', sans-serif;
+    letter-spacing: 0.5px;
+  }
+
+  .app {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 22px;
+    border-bottom: 2px solid var(--line);
+    padding-bottom: 14px;
+  }
+
+  header h1 {
+    font-size: 28px;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  header h1 .dot { color: var(--accent); }
+
+  .sub {
+    color: var(--text-dim);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+
+  .title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .title-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+  }
+
+  #listTitle {
+    flex: 1;
+    max-width: 420px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 15px;
+    padding: 8px 10px;
+    border-radius: 3px;
+  }
+
+  #listTitle:focus {
+    border-color: var(--accent);
+    outline: none;
+  }
+
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+  }
+
+  body.page-drag-active .pool,
+  body.page-drag-active .tier-drop {
+    background: rgba(244, 211, 94, 0.06);
+  }
+
+  body.page-drag-active .pool {
+    border-color: var(--accent);
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--panel-2);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    font-size: 12px;
+    padding: 10px 16px;
+    border-radius: 4px;
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+
+  .toast.show {
+    opacity: 1;
+  }
+
+  button, .file-btn {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 9px 14px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  button:hover, .file-btn:hover {
+    border-color: var(--accent);
+    background: #2a2a30;
+  }
+
+  button:focus-visible, .file-btn:focus-visible, input:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  #fileInput { display: none; }
+
+  .tiers {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 30px;
+  }
+
+  .tier-row {
+    display: flex;
+    min-height: 84px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--panel);
+  }
+
+  .tier-label {
+    width: 84px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    font-weight: 900;
+    color: #15151a;
+    position: relative;
+    cursor: text;
+    user-select: none;
+  }
+
+  .tier-label input {
+    width: 100%;
+    text-align: center;
+    background: transparent;
+    border: none;
+    color: #15151a;
+    font-size: 26px;
+    font-weight: 900;
+    font-family: inherit;
+  }
+
+  .tier-row[data-color="0"] .tier-label { background: var(--s-color); }
+  .tier-row[data-color="1"] .tier-label { background: var(--a-color); }
+  .tier-row[data-color="2"] .tier-label { background: var(--b-color); }
+  .tier-row[data-color="3"] .tier-label { background: var(--c-color); }
+  .tier-row[data-color="4"] .tier-label { background: var(--d-color); }
+  .tier-row[data-color="5"] .tier-label { background: var(--extra-color); }
+
+  .tier-remove {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: rgba(0,0,0,0.25);
+    color: #15151a;
+    border: none;
+    font-size: 10px;
+    width: 16px;
+    height: 16px;
+    line-height: 16px;
+    border-radius: 2px;
+    cursor: pointer;
+    padding: 0;
+    opacity: 0;
+    transition: opacity 0.12s;
+  }
+
+  .tier-label:hover .tier-remove,
+  .tier-remove:focus-visible {
+    opacity: 1;
+  }
+
+  .tier-drop {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 6px;
+    padding: 8px;
+    min-height: 84px;
+    transition: background 0.12s;
+  }
+
+  .tier-drop.drag-over {
+    background: rgba(244, 211, 94, 0.08);
+  }
+
+  .add-tier-btn {
+    align-self: flex-start;
+    margin-top: 2px;
+  }
+
+  .pool-section h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    margin: 0 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .pool-section h2::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+
+  .pool {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 110px;
+    padding: 12px;
+    border: 1px dashed var(--line);
+    border-radius: 4px;
+    background: var(--panel);
+    transition: background 0.12s;
+  }
+
+  .pool.drag-over {
+    background: rgba(244, 211, 94, 0.06);
+    border-color: var(--accent);
+  }
+
+  .empty-hint {
+    color: var(--text-dim);
+    font-size: 12px;
+    margin: auto;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .tile {
+    width: 64px;
+    height: 64px;
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+    cursor: grab;
+    border: 1px solid var(--line);
+    background: var(--panel-2);
+    flex-shrink: 0;
+  }
+
+  .tile img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    pointer-events: none;
+  }
+
+  .tile.dragging {
+    opacity: 0.3;
+  }
+
+  .tile .del {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 16px;
+    height: 16px;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    border: none;
+    border-radius: 2px;
+    font-size: 10px;
+    line-height: 16px;
+    padding: 0;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.12s;
+  }
+
+  .tile.broken {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #2a1d1d;
+  }
+
+  .tile.broken::after {
+    content: '⚠';
+    color: #FF8A8A;
+    font-size: 18px;
+  }
+
+  .tile.broken img {
+    display: none;
+  }
+
+  .tile:hover .del { opacity: 1; }
+
+  footer {
+    margin-top: 30px;
+    color: var(--text-dim);
+    font-size: 11px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div>
+      <h1 class="display">TIER<span class="dot">.</span>LIST</h1>
+      <div class="sub">drag images into rows to rank them</div>
+    </div>
+  </header>
+
+  <div class="title-row">
+    <label for="listTitle" class="title-label">Name this list</label>
+    <input id="listTitle" type="text" maxlength="60" placeholder="My Tier List" value="My Tier List">
+  </div>
+
+  <div class="toolbar">
+    <label class="file-btn" for="fileInput">+ Add Images</label>
+    <input id="fileInput" type="file" accept="image/*" multiple>
+    <button id="addTierBtn">+ Add Tier</button>
+    <button id="saveImgBtn">⬇ Save as Image</button>
+    <button id="resetBtn">Reset All</button>
+  </div>
+
+  <div class="tiers" id="tiers"></div>
+
+  <div class="pool-section">
+    <h2>Unranked</h2>
+    <div class="pool" id="pool"></div>
+  </div>
+
+  <footer>Images stay in this browser tab only — nothing is uploaded anywhere.</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const TIER_DEFAULTS = ['S', 'A', 'B', 'C', 'D'];
+  let tierState = TIER_DEFAULTS.map(label => ({ label, items: [] }));
+  let pool = [];
+  let nextId = 1;
+  let draggedId = null;
+
+  const tiersEl = document.getElementById('tiers');
+  const poolEl = document.getElementById('pool');
+  const fileInput = document.getElementById('fileInput');
+
+  function render() {
+    tiersEl.innerHTML = '';
+    tierState.forEach((tier, idx) => {
+      const row = document.createElement('div');
+      row.className = 'tier-row';
+      row.dataset.color = idx % 6;
+      row.dataset.tierIndex = idx;
+
+      const labelWrap = document.createElement('div');
+      labelWrap.className = 'tier-label';
+
+      const labelInput = document.createElement('input');
+      labelInput.value = tier.label;
+      labelInput.maxLength = 3;
+      labelInput.addEventListener('input', e => {
+        tier.label = e.target.value;
+      });
+      labelWrap.appendChild(labelInput);
+
+      if (tierState.length > 1) {
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'tier-remove';
+        removeBtn.textContent = '✕';
+        removeBtn.title = 'Remove tier';
+        removeBtn.addEventListener('click', () => {
+          pool.push(...tier.items);
+          tierState.splice(idx, 1);
+          render();
+        });
+        labelWrap.appendChild(removeBtn);
+      }
+
+      row.appendChild(labelWrap);
+
+      const drop = document.createElement('div');
+      drop.className = 'tier-drop';
+      drop.dataset.tierIndex = idx;
+      attachDropZone(drop, tier.items);
+      tier.items.forEach(item => drop.appendChild(makeTile(item)));
+      row.appendChild(drop);
+
+      tiersEl.appendChild(row);
+    });
+
+    poolEl.innerHTML = '';
+    attachDropZone(poolEl, pool);
+    if (pool.length === 0 && tierState.every(t => t.items.length === 0)) {
+      const hint = document.createElement('div');
+      hint.className = 'empty-hint';
+      hint.textContent = 'No images yet — drag files in from your computer, paste one (Ctrl+V), or click "+ Add Images".';
+      poolEl.appendChild(hint);
+    } else {
+      pool.forEach(item => poolEl.appendChild(makeTile(item)));
+    }
+  }
+
+  function makeTile(item) {
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    tile.draggable = true;
+    tile.dataset.id = item.id;
+
+    const img = document.createElement('img');
+    img.src = item.src;
+    img.alt = item.name || '';
+    img.addEventListener('error', () => {
+      tile.classList.add('broken');
+      img.alt = 'Image failed to load';
+      tile.title = 'Image failed to load';
+    });
+    tile.appendChild(img);
+
+    const del = document.createElement('button');
+    del.className = 'del';
+    del.textContent = '✕';
+    del.title = 'Delete image';
+    del.addEventListener('click', () => {
+      removeItemEverywhere(item.id);
+      render();
+    });
+    tile.appendChild(del);
+
+    tile.addEventListener('dragstart', e => {
+      draggedId = item.id;
+      tile.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    tile.addEventListener('dragend', () => {
+      tile.classList.remove('dragging');
+      draggedId = null;
+    });
+
+    return tile;
+  }
+
+  function attachDropZone(el, targetArray) {
+    el.addEventListener('dragenter', e => {
+      e.preventDefault();
+      el.classList.add('drag-over');
+    });
+    el.addEventListener('dragover', e => {
+      e.preventDefault();
+      // 'copy' matches the effectAllowed browsers set when dragging an <img> or file in —
+      // forcing 'move' here caused some browsers (notably Firefox) to reject the drop entirely.
+      e.dataTransfer.dropEffect = draggedId !== null ? 'move' : 'copy';
+      el.classList.add('drag-over');
+    });
+    el.addEventListener('dragleave', () => {
+      el.classList.remove('drag-over');
+    });
+    el.addEventListener('drop', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      el.classList.remove('drag-over');
+      document.body.classList.remove('page-drag-active');
+
+      // Reordering an existing tile within the app
+      if (draggedId !== null) {
+        const item = removeItemEverywhere(draggedId);
+        if (item) {
+          targetArray.push(item);
+          render();
+        }
+        return;
+      }
+
+      // New image dropped in from outside the app (file or URL)
+      handleExternalDrop(e.dataTransfer, targetArray);
+    });
+  }
+
+  function addFilesToArray(files, targetArray) {
+    const imageFiles = files.filter(f => f.type && f.type.startsWith('image/'));
+    if (imageFiles.length === 0) return;
+    let remaining = imageFiles.length;
+    imageFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        targetArray.push({ id: nextId++, src: ev.target.result, name: file.name });
+        remaining--;
+        if (remaining === 0) render();
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function handleExternalDrop(dataTransfer, targetArray) {
+    // Files dragged in from the desktop
+    if (dataTransfer.files && dataTransfer.files.length > 0) {
+      addFilesToArray(Array.from(dataTransfer.files), targetArray);
+      return;
+    }
+    showToast('Couldn\u2019t read that as an image file — try dragging a file from your computer, or use "+ Add Images".');
+  }
+
+  let toastTimer = null;
+  function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 4200);
+  }
+
+  function removeItemEverywhere(id) {
+    let found = null;
+    const idxPool = pool.findIndex(i => i.id === id);
+    if (idxPool !== -1) found = pool.splice(idxPool, 1)[0];
+    if (!found) {
+      for (const tier of tierState) {
+        const idx = tier.items.findIndex(i => i.id === id);
+        if (idx !== -1) {
+          found = tier.items.splice(idx, 1)[0];
+          break;
+        }
+      }
+    }
+    return found;
+  }
+
+  fileInput.addEventListener('change', e => {
+    addFilesToArray(Array.from(e.target.files), pool);
+    fileInput.value = '';
+  });
+
+  // Paste support: Ctrl+V / Cmd+V anywhere on the page adds a copied image
+  document.addEventListener('paste', e => {
+    const cd = e.clipboardData;
+    if (!cd) return;
+
+    const files = Array.from(cd.files || []).filter(f => f.type && f.type.startsWith('image/'));
+    if (files.length > 0) {
+      e.preventDefault();
+      addFilesToArray(files, pool);
+      showToast('Image pasted into Unranked.');
+    }
+  });
+
+  // Whole-page drag/drop fallback so dropping anywhere (not just on a tier/pool) still works
+  document.addEventListener('dragenter', e => {
+    e.preventDefault();
+  });
+  document.addEventListener('dragover', e => {
+    e.preventDefault();
+    if (draggedId === null) document.body.classList.add('page-drag-active');
+  });
+  document.addEventListener('dragleave', e => {
+    if (e.target === document || e.target === document.documentElement) {
+      document.body.classList.remove('page-drag-active');
+    }
+  });
+  document.addEventListener('drop', e => {
+    e.preventDefault();
+    document.body.classList.remove('page-drag-active');
+    // If the drop already landed inside a registered zone, attachDropZone handled it via stopPropagation
+    if (draggedId === null) {
+      handleExternalDrop(e.dataTransfer, pool);
+    }
+  });
+
+  document.getElementById('addTierBtn').addEventListener('click', () => {
+    tierState.push({ label: 'NEW', items: [] });
+    render();
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    if (!confirm('Clear all images and reset tiers?')) return;
+    tierState = TIER_DEFAULTS.map(label => ({ label, items: [] }));
+    pool = [];
+    nextId = 1;
+    render();
+  });
+
+  const listTitleInput = document.getElementById('listTitle');
+  function getTitle() {
+    return (listTitleInput.value || '').trim() || 'My Tier List';
+  }
+  listTitleInput.addEventListener('input', () => {
+    document.title = getTitle() + ' — Tier List Maker';
+  });
+
+  function sanitizeFilename(name) {
+    return name.replace(/[^a-z0-9\-_ ]/gi, '').trim().replace(/\s+/g, '_') || 'tier_list';
+  }
+
+  // Resolve a TIER_COLORS-style hex for canvas use (mirrors the CSS vars).
+  const TIER_COLOR_HEX = ['#FF4D5E', '#FF9F4D', '#F4D35E', '#6FCF97', '#4D9BFF', '#B084F0'];
+  const CANVAS_BG = '#131316';
+  const CANVAS_PANEL = '#1c1c20';
+  const CANVAS_LINE = '#34343a';
+
+  function loadImage(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+
+  async function exportAsImage() {
+    const saveBtn = document.getElementById('saveImgBtn');
+    const originalLabel = saveBtn.textContent;
+    saveBtn.textContent = 'Rendering…';
+    saveBtn.disabled = true;
+
+    try {
+      const width = 900;
+      const padding = 8;
+      const labelWidth = 84;
+      const tileSize = 64;
+      const gap = 6;
+      const titleHeight = 64;
+      const rowGap = 6;
+      const bottomPadding = 24;
+
+      const tilesPerRow = Math.max(1, Math.floor((width - labelWidth - padding * 2 + gap) / (tileSize + gap)));
+
+      const rowHeights = tierState.map(tier => {
+        const rows = Math.max(1, Math.ceil(tier.items.length / tilesPerRow));
+        return Math.max(84, rows * (tileSize + gap) + padding * 2 - gap);
+      });
+
+      const totalHeight = titleHeight + rowHeights.reduce((a, b) => a + b + rowGap, 0) + bottomPadding;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = totalHeight;
+      const ctx = canvas.getContext('2d');
+
+      // Background
+      ctx.fillStyle = CANVAS_BG;
+      ctx.fillRect(0, 0, width, totalHeight);
+
+      // Title
+      ctx.fillStyle = '#ECECEF';
+      ctx.font = '700 26px Impact, Arial, sans-serif';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(getTitle(), 20, titleHeight / 2 + 8);
+      ctx.strokeStyle = CANVAS_LINE;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, titleHeight - 4);
+      ctx.lineTo(width, titleHeight - 4);
+      ctx.stroke();
+
+      // Pre-load all images used in tiers
+      const allItems = tierState.flatMap(t => t.items);
+      const loaded = await Promise.all(allItems.map(item => loadImage(item.src).catch(() => null)));
+      const imageMap = new Map();
+      allItems.forEach((item, i) => imageMap.set(item.id, loaded[i]));
+
+      let cursorY = titleHeight;
+      tierState.forEach((tier, idx) => {
+        const rowHeight = rowHeights[idx];
+        const color = TIER_COLOR_HEX[idx % TIER_COLOR_HEX.length];
+
+        // Label block
+        ctx.fillStyle = color;
+        ctx.fillRect(0, cursorY, labelWidth, rowHeight);
+        ctx.fillStyle = '#15151a';
+        ctx.font = '900 26px Impact, Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const labelText = (tier.label || '').slice(0, 3) || '?';
+        ctx.fillText(labelText, labelWidth / 2, cursorY + rowHeight / 2);
+        ctx.textAlign = 'left';
+
+        // Drop area background
+        ctx.fillStyle = CANVAS_PANEL;
+        ctx.fillRect(labelWidth, cursorY, width - labelWidth, rowHeight);
+
+        // Border
+        ctx.strokeStyle = CANVAS_LINE;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(0.5, cursorY + 0.5, width - 1, rowHeight - 1);
+
+        // Tiles
+        tier.items.forEach((item, i) => {
+          const col = i % tilesPerRow;
+          const row = Math.floor(i / tilesPerRow);
+          const x = labelWidth + padding + col * (tileSize + gap);
+          const y = cursorY + padding + row * (tileSize + gap);
+          const img = imageMap.get(item.id);
+          if (img) {
+            // cover-fit draw
+            const scale = Math.max(tileSize / img.width, tileSize / img.height);
+            const sw = tileSize / scale;
+            const sh = tileSize / scale;
+            const sx = (img.width - sw) / 2;
+            const sy = (img.height - sh) / 2;
+            ctx.drawImage(img, sx, sy, sw, sh, x, y, tileSize, tileSize);
+          } else {
+            ctx.fillStyle = '#2a2a30';
+            ctx.fillRect(x, y, tileSize, tileSize);
+          }
+          ctx.strokeStyle = CANVAS_LINE;
+          ctx.strokeRect(x + 0.5, y + 0.5, tileSize - 1, tileSize - 1);
+        });
+
+        cursorY += rowHeight + rowGap;
+      });
+
+      const dataUrl = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = sanitizeFilename(getTitle()) + '.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (err) {
+      alert('Could not generate image: ' + err.message);
+    } finally {
+      saveBtn.textContent = originalLabel;
+      saveBtn.disabled = false;
+    }
+  }
+
+  document.getElementById('saveImgBtn').addEventListener('click', exportAsImage);
+
+  render();
+</script>
+
+<!-- Vercel Web Analytics — only reports data once this file is deployed on Vercel.
+     Enable "Web Analytics" for this project in your Vercel dashboard (Project → Analytics tab) to see visits. -->
+<script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>
